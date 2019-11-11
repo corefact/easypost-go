@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -35,6 +36,8 @@ type Order struct {
 	Service string `json:"service,omitempty"`
 
 	Error *Error `json:"error,omitempty"`
+
+	retries int
 }
 
 //ErrorString returns a string representation of the error
@@ -89,22 +92,34 @@ func (o *Order) Buy() error {
 		return err
 	}
 
-	if o.Error != nil && o.Error.Code == ErrorOrderRateUnavailable {
-		return o.buyBestRate()
+	if o.retries < 2 {
+		o.retries++
+
+		if o.Error != nil && o.Error.Code == ErrorOrderRateUnavailable {
+			return o.buyBestRate()
+		}
 	}
 
 	return nil
 }
 
-var serviceGroups = [][]string{
-	[]string{"FEDEX_GROUND", "STANDARD_OVERNIGHT", "GROUND_HOME_DELIVERY"},
-	[]string{"FEDEX_2_DAY_AM", "FEDEX_2_DAY", "FEDEX_EXPRESS_SAVER"},
-	[]string{"FIRST_OVERNIGHT", "PRIORITY_OVERNIGHT"},
+var services = map[string][][]string{
+	"fedex": {
+		[]string{"FEDEX_GROUND", "STANDARD_OVERNIGHT", "GROUND_HOME_DELIVERY"},
+		[]string{"FEDEX_2_DAY_AM", "FEDEX_2_DAY", "FEDEX_EXPRESS_SAVER"},
+		[]string{"FIRST_OVERNIGHT", "PRIORITY_OVERNIGHT"},
+	},
+	"ups": {
+		[]string{"Ground"},
+		[]string{"3rdDayAir", "UPSSaver", "UPS1DaySaver"},
+		[]string{"NextDayAir", "STANDARD_OVERNIGHT", "NextDayAirEarlyAM", "PRIORITY_OVERNIGHT"},
+	},
 }
 
-func serviceGroupIndex(service string) int {
-	for i := 0; i < len(serviceGroups); i++ {
-		group := serviceGroups[i]
+func serviceGroupIndex(service string, group [][]string) int {
+	for i := 0; i < len(group); i++ {
+
+		group := group[i]
 		for _, s := range group {
 			if s == service {
 				return i
@@ -128,10 +143,13 @@ func (o *Order) buyBestRate() error {
 }
 
 func (o *Order) bestServiceMatch() string {
-	availableServices := o.Rates.Services("FedEx")
+
+	availableServices := o.Rates.Services("UPS", "FedEx")
+	serviceGroups := services[strings.ToLower(o.Carrier)]
+
 	DebugLog("available services: %v", availableServices)
 	isAvailable := stringSliceContains(availableServices)
-	breakPoint := serviceGroupIndex(o.Service)
+	breakPoint := serviceGroupIndex(o.Service, serviceGroups)
 	servicesOrderedByPreference := serviceGroups[breakPoint:]
 	servicesOrderedByPreference = append(servicesOrderedByPreference, serviceGroups[:breakPoint]...)
 

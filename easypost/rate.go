@@ -47,11 +47,13 @@ func (r Rates) Filter(p func(*Rate) bool) Rates {
 	return f
 }
 
-func (r Rates) Services(carrier string) []string {
+func (r Rates) Services(carriers ...string) []string {
 	services := []string{}
-	for _, rate := range r {
-		if rate.Carrier == carrier {
-			services = append(services, rate.Service)
+	for _, carrier := range carriers {
+		for _, rate := range r {
+			if rate.Carrier == carrier {
+				services = append(services, rate.Service)
+			}
 		}
 	}
 	return services

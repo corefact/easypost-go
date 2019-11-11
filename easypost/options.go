@@ -45,4 +45,12 @@ type Options struct {
 	SpecialRatesEligibility  string `json:"special_rates_eligibility,omitempty"`
 	SmartpostHub             string `json:"smartpost_hub,omitempty"`
 	SmartpostManifest        string `json:"smartpost_manifest,omitempty"`
+
+	Payment *Payment `json:"payment,omitempty"`
+}
+
+type Payment struct {
+	Type       string `json:"type"`
+	Account    string `json:"account"`
+	PostalCode string `json:"postal_code"`
 }
