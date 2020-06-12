@@ -3,7 +3,7 @@ package easypost
 import (
 	"strings"
 
-	"github.com/mitchrodrigues/easypost-go/fake"
+	"github.com/corefact/easypost-go/fake"
 )
 
 type RequestControllerFake struct {
